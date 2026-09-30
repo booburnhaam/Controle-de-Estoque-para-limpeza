@@ -184,8 +184,8 @@ function renderSaida() {
                 </div>
 
                 <div class="campo">
-                    <label>Responsável pela Retirada</label>
-                    <input type="text" id="responsavel-saida" placeholder="Deixe em branco para usar: ${usuarioLogado.nome}">
+                    <label>Responsável</label>
+                    <input type="text" id="responsavel-saida" value="${usuarioLogado.nome}" disabled style="background: #f5f5f5;">
                 </div>
 
                 <div class="campo">
@@ -291,7 +291,7 @@ async function handleSaida(e) {
             quantidade: quantidade,
             data_saida: document.getElementById('data-saida').value,
             local_uso: document.getElementById('local-uso').value,
-            responsavel: responsavel,
+            responsavel: usuarioLogado.nome,
             observacoes: document.getElementById('observacoes-saida').value
         });
 
