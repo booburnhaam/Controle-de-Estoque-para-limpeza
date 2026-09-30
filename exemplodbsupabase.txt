@@ -1,0 +1,61 @@
+-- Tabela de usuários
+CREATE TABLE usuarios (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  usuario VARCHAR(50) UNIQUE NOT NULL,
+  senha VARCHAR(255) NOT NULL,
+  nome VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Tabela de produtos
+CREATE TABLE produtos (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  codigo SERIAL UNIQUE,
+  nome VARCHAR(100) NOT NULL,
+  categoria VARCHAR(50) NOT NULL,
+  quantidade DECIMAL(10,2) DEFAULT 0,
+  unidade VARCHAR(20) NOT NULL,
+  estoque_minimo DECIMAL(10,2) DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Tabela de entradas
+CREATE TABLE entradas (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  produto_id UUID REFERENCES produtos(id) ON DELETE CASCADE,
+  quantidade DECIMAL(10,2) NOT NULL,
+  data_entrada DATE NOT NULL,
+  fornecedor VARCHAR(100),
+  responsavel VARCHAR(100) NOT NULL,
+  observacoes TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Tabela de saídas
+CREATE TABLE saidas (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  produto_id UUID REFERENCES produtos(id) ON DELETE CASCADE,
+  quantidade DECIMAL(10,2) NOT NULL,
+  data_saida DATE NOT NULL,
+  local_uso VARCHAR(100),
+  responsavel VARCHAR(100) NOT NULL,
+  observacoes TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Inserir usuário de teste
+INSERT INTO usuarios (usuario, senha, nome) 
+VALUES ('admin', 'admin123', 'Administrador');
+
+-- Inserir alguns produtos de exemplo (opcional)
+INSERT INTO produtos (nome, categoria, quantidade, unidade, estoque_minimo) VALUES
+('Detergente', 'Limpeza', 15, 'Litros', 5),
+('Água Sanitária', 'Limpeza', 8, 'Litros', 3),
+('Papel Higiênico', 'Higiene', 50, 'Unidades', 20),
+('Sabão em Pó', 'Limpeza', 10, 'Quilos', 5),
+('Desinfetante', 'Limpeza', 12, 'Litros', 4),
+('Álcool Gel', 'Higiene', 6, 'Litros', 3),
+('Saco de Lixo 100L', 'Descartáveis', 25, 'Pacotes', 10),
+('Esponja de Aço', 'Limpeza', 30, 'Pacotes', 15),
+('Pano de Chão', 'Limpeza', 20, 'Unidades', 8),
+('Luvas de Borracha', 'Outros', 12, 'Pares', 5);
