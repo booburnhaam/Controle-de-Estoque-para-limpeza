@@ -1,4 +1,4 @@
-function renderEntrada() {
+async function renderEntrada(produtoId = null) {
     const app = document.getElementById('app');
     app.innerHTML = `
         <button class="btn-voltar-fixo" onclick="renderMenuPrincipal()">← Voltar ao Menu</button>
@@ -55,8 +55,19 @@ function renderEntrada() {
     `;
 
     document.getElementById('data-entrada').valueAsDate = new Date();
-    carregarProdutosEntrada();
+
+    await carregarProdutosEntrada();
+
+    if (produtoId !== null) {
+        const select = document.getElementById('produto-entrada');
+
+        if (select) {
+            select.value = produtoId;
+        }
+    }
+
     carregarHistoricoEntradas();
+
     document.getElementById('form-entrada').addEventListener('submit', handleEntrada);
 }
 

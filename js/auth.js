@@ -97,14 +97,20 @@ function limparLogin() {
     document.getElementById('mensagem-login').innerHTML = '';
 }
 
-// Fazer logout com segurança
-function logout() {
-    if (confirm('Tem certeza que deseja sair do sistema?')) {
-        console.log(`Usuário ${usuarioLogado.nome} fez logout em ${new Date().toLocaleString('pt-BR')}`);
-        usuarioLogado = null;
-        sessionStorage.removeItem('usuario_lembrado');
-        renderLogin();
-    }
+// Fazer logout com segurança (modal personalizado)
+async function logout() {
+    const ok = await confirmarModal({
+        titulo: '🚪 Sair do sistema?',
+        html: '<p>Tem certeza que deseja sair?</p>',
+        textoOk: 'Sair',
+        perigo: true
+    });
+    if (!ok) return;
+
+    console.log(`Usuário ${usuarioLogado.nome} fez logout em ${new Date().toLocaleString('pt-BR')}`);
+    usuarioLogado = null;
+    sessionStorage.removeItem('usuario_lembrado');
+    renderLogin();
 }
 
 // Renderizar menu principal melhorado
@@ -118,194 +124,596 @@ async function renderMenuPrincipal() {
 
     try {
         // Buscar dados para o dashboard
-        const totalProdutos = (await DB.listarProdutos()).length;
-        const produtosComBaixoEstoque = (await DB.listarProdutos()).filter(
+        const produtos = await DB.listarProdutos();
+
+        const totalProdutos = produtos.length;
+
+        const produtosComBaixoEstoque = produtos.filter(
             p => p.quantidade <= p.estoque_minimo && p.quantidade > 0
         ).length;
-        const produtosCriticos = (await DB.listarProdutos()).filter(
+
+        const produtosCriticos = produtos.filter(
             p => p.quantidade <= 0
         ).length;
 
         // Contar movimentações de hoje
         const hoje = new Date().toISOString().split('T')[0];
-        const entradasHoje = (await DB.listarEntradas()).filter(
+
+        const entradas = await DB.listarEntradas();
+        const saidas = await DB.listarSaidas();
+
+        const entradasHoje = entradas.filter(
             e => e.data_entrada === hoje
         ).length;
-        const saidasHoje = (await DB.listarSaidas()).filter(
+
+        const saidasHoje = saidas.filter(
             s => s.data_saida === hoje
         ).length;
 
         const app = document.getElementById('app');
+
+        // =========================================================
+        // HTML DA TELA
+        // =========================================================
+
         app.innerHTML = `
             <div class="container">
+
                 <div class="header">
                     <div>
                         <h1 class="titulo">Menu Principal</h1>
                         <p class="subtitulo">${dataAtual}</p>
                     </div>
+
                     <div class="info-usuario">
                         <div class="usuario-card">
-                            <p><strong>Usuário:</strong> ${usuarioLogado.nome}</p>
-                            <p style="font-size: 12px; color: #999;">@${usuarioLogado.usuario}</p>
+                            <p>
+                                <strong>Usuário:</strong>
+                                ${usuarioLogado.nome}
+                            </p>
+
+                            <p style="font-size: 12px; color: #999;">
+                                @${usuarioLogado.usuario}
+                            </p>
                         </div>
+
                         <div class="botoes-usuario">
-                            <button class="btn btn-pequeno" onclick="abrirAlterarSenha()">🔐 Alterar Senha</button>
-                            <button class="btn btn-pequeno" onclick="abrirPaginaAdmin()">⚙️ Admin</button>
-                            <button class="btn btn-pequeno" onclick="alternarModoEscuro()" id="btnTemaMenu">🌙 Tema</button>
-                            <button class="btn btn-pequeno btn-perigo" onclick="logout()">🚪 Sair</button>
+                            <button
+                                class="btn btn-pequeno"
+                                onclick="abrirAlterarSenha()">
+                                🔐 Alterar Senha
+                            </button>
+
+                            <button
+                                class="btn btn-pequeno"
+                                onclick="abrirPaginaAdmin()">
+                                ⚙️ Admin
+                            </button>
+
+                            <button
+                                class="btn btn-pequeno"
+                                onclick="alternarModoEscuro()"
+                                id="btnTemaMenu">
+                                🌙 Tema
+                            </button>
+
+                            <button
+                                class="btn btn-pequeno btn-perigo"
+                                onclick="logout()">
+                                🚪 Sair
+                            </button>
                         </div>
                     </div>
                 </div>
 
+
+                <!-- CARDS DO MENU -->
+
                 <div class="menu-grid">
+
                     <div class="menu-card" onclick="renderEstoque()">
                         <div class="menu-card-icone">📦</div>
                         <h3 class="menu-card-titulo">Estoque</h3>
-                        <p class="menu-card-descricao">Visualizar materiais cadastrados</p>
+                        <p class="menu-card-descricao">
+                            Visualizar materiais cadastrados
+                        </p>
                     </div>
 
                     <div class="menu-card" onclick="renderCadastroProduto()">
                         <div class="menu-card-icone">➕</div>
                         <h3 class="menu-card-titulo">Cadastrar Produto</h3>
-                        <p class="menu-card-descricao">Adicionar novo material</p>
+                        <p class="menu-card-descricao">
+                            Adicionar novo material
+                        </p>
                     </div>
 
                     <div class="menu-card" onclick="renderEntrada()">
                         <div class="menu-card-icone">📥</div>
                         <h3 class="menu-card-titulo">Registrar Entrada</h3>
-                        <p class="menu-card-descricao">Entrada de novos materiais</p>
+                        <p class="menu-card-descricao">
+                            Entrada de novos materiais
+                        </p>
                     </div>
 
                     <div class="menu-card" onclick="renderSaida()">
                         <div class="menu-card-icone">📤</div>
                         <h3 class="menu-card-titulo">Registrar Saída</h3>
-                        <p class="menu-card-descricao">Saída de materiais</p>
+                        <p class="menu-card-descricao">
+                            Saída de materiais
+                        </p>
                     </div>
 
                     <div class="menu-card" onclick="renderRelatorios()">
                         <div class="menu-card-icone">📊</div>
                         <h3 class="menu-card-titulo">Relatórios</h3>
-                        <p class="menu-card-descricao">Consultar informações</p>
+                        <p class="menu-card-descricao">
+                            Consultar informações
+                        </p>
                     </div>
+
                 </div>
+
+
+                <!-- RESUMO DO ESTOQUE -->
 
                 <div class="dashboard-secao">
-                    <h2 class="dashboard-titulo">Resumo do Estoque</h2>
-                    
+
+                    <h2 class="dashboard-titulo">
+                        Resumo do Estoque
+                    </h2>
+
                     <div class="dashboard-grid">
+
                         <div class="dashboard-card card-azul">
-                            <div class="dashboard-valor">${totalProdutos}</div>
-                            <div class="dashboard-label">Total de Produtos</div>
-                            <div class="dashboard-icone">📦</div>
+                            <div class="dashboard-valor">
+                                ${totalProdutos}
+                            </div>
+
+                            <div class="dashboard-label">
+                                Total de Produtos
+                            </div>
+
+                            <div class="dashboard-icone">
+                                📦
+                            </div>
                         </div>
+
 
                         <div class="dashboard-card card-amarelo">
-                            <div class="dashboard-valor">${produtosComBaixoEstoque}</div>
-                            <div class="dashboard-label">Estoque Baixo</div>
-                            <div class="dashboard-icone">⚠️</div>
+                            <div class="dashboard-valor">
+                                ${produtosComBaixoEstoque}
+                            </div>
+
+                            <div class="dashboard-label">
+                                Estoque Baixo
+                            </div>
+
+                            <div class="dashboard-icone">
+                                ⚠️
+                            </div>
                         </div>
+
 
                         <div class="dashboard-card card-vermelho">
-                            <div class="dashboard-valor">${produtosCriticos}</div>
-                            <div class="dashboard-label">Produtos Críticos</div>
-                            <div class="dashboard-icone">🚨</div>
+                            <div class="dashboard-valor">
+                                ${produtosCriticos}
+                            </div>
+
+                            <div class="dashboard-label">
+                                Produtos Críticos
+                            </div>
+
+                            <div class="dashboard-icone">
+                                🚨
+                            </div>
                         </div>
+
 
                         <div class="dashboard-card card-verde">
-                            <div class="dashboard-valor">${entradasHoje}</div>
-                            <div class="dashboard-label">Entradas Hoje</div>
-                            <div class="dashboard-icone">📥</div>
+                            <div class="dashboard-valor">
+                                ${entradasHoje}
+                            </div>
+
+                            <div class="dashboard-label">
+                                Entradas Hoje
+                            </div>
+
+                            <div class="dashboard-icone">
+                                📥
+                            </div>
                         </div>
+
 
                         <div class="dashboard-card card-roxo">
-                            <div class="dashboard-valor">${saidasHoje}</div>
-                            <div class="dashboard-label">Saídas Hoje</div>
-                            <div class="dashboard-icone">📤</div>
+                            <div class="dashboard-valor">
+                                ${saidasHoje}
+                            </div>
+
+                            <div class="dashboard-label">
+                                Saídas Hoje
+                            </div>
+
+                            <div class="dashboard-icone">
+                                📤
+                            </div>
                         </div>
+
 
                         <div class="dashboard-card card-laranja">
-                            <div class="dashboard-valor">${entradasHoje + saidasHoje}</div>
-                            <div class="dashboard-label">Movimentações Hoje</div>
-                            <div class="dashboard-icone">↔️</div>
+                            <div class="dashboard-valor">
+                                ${entradasHoje + saidasHoje}
+                            </div>
+
+                            <div class="dashboard-label">
+                                Movimentações Hoje
+                            </div>
+
+                            <div class="dashboard-icone">
+                                ↔️
+                            </div>
                         </div>
+
                     </div>
+
                 </div>
+
+
+                <!-- GRÁFICO -->
+
+                <div class="grafico-secao">
+
+                    <h2 class="dashboard-titulo">
+                        Status do Estoque
+                    </h2>
+
+                    <div
+                        id="grafico-status"
+                        class="grafico-container">
+                    </div>
+
+                </div>
+
+
+                <!-- LISTAS -->
 
                 <div class="dashboard-listagens">
-                    <div class="dashboard-lista">
-                        <h3>Produtos com Estoque Baixo</h3>
-                        <div id="lista-baixo-estoque"></div>
-                    </div>
 
                     <div class="dashboard-lista">
-                        <h3>Produtos Sem Estoque</h3>
-                        <div id="lista-critica"></div>
+
+                        <h3>
+                            Produtos com Estoque Baixo
+                        </h3>
+
+                        <div id="lista-baixo-estoque">
+                        </div>
+
                     </div>
+
+
+                    <div class="dashboard-lista">
+
+                        <h3>
+                            Produtos Sem Estoque
+                        </h3>
+
+                        <div id="lista-critica">
+                        </div>
+
+                    </div>
+
                 </div>
+
+
+                <!-- ATALHOS -->
+
+                <div class="atalhos-info">
+
+                    <strong>⌨️ Atalhos:</strong>
+
+                    <span>
+                        <kbd>Ctrl</kbd>+<kbd>N</kbd>
+                        Novo produto
+                    </span>
+
+                    <span>
+                        <kbd>Ctrl</kbd>+<kbd>E</kbd>
+                        Estoque
+                    </span>
+
+                    <span>
+                        <kbd>Ctrl</kbd>+<kbd>R</kbd>
+                        Relatórios
+                    </span>
+
+                    <span>
+                        <kbd>Ctrl</kbd>+<kbd>L</kbd>
+                        Sair
+                    </span>
+
+                    <span>
+                        <kbd>Esc</kbd>
+                        Voltar ao menu
+                    </span>
+
+                </div>
+
             </div>
         `;
 
-        // Preencher listas de produtos críticos
+
+        // =========================================================
+        // JAVASCRIPT EXECUTADO DEPOIS DO HTML
+        // =========================================================
+
+        // Preencher lista de produtos com estoque baixo
         preencherListaBaixoEstoque();
+
+        // Preencher lista de produtos sem estoque
         preencherListaCritica();
 
+
+        // Desenhar o gráfico de status
+        if (typeof desenharGraficoStatus === 'function') {
+
+            desenharGraficoStatus(
+                totalProdutos -
+                produtosComBaixoEstoque -
+                produtosCriticos,
+
+                produtosComBaixoEstoque,
+
+                produtosCriticos
+            );
+
+        } else {
+
+            console.error(
+                'A função desenharGraficoStatus não foi encontrada. Verifique se o grafico.js foi carregado.'
+            );
+
+        }
+
+
     } catch (error) {
-        console.error('Erro ao carregar dashboard:', error);
+
+        console.error(
+            'Erro ao carregar dashboard:',
+            error
+        );
+
         const app = document.getElementById('app');
+
         app.innerHTML = `
             <div class="container">
-                <p style="color: red;">Erro ao carregar o dashboard. Tente recarregar a página.</p>
+
+                <p style="color: red;">
+                    Erro ao carregar o dashboard.
+                    Tente recarregar a página.
+                </p>
+
             </div>
         `;
     }
 }
 
-// Função para preencher lista de estoque baixo
+// ============================================
+// LISTA DE PRODUTOS COM ESTOQUE BAIXO
+// ============================================
+
 async function preencherListaBaixoEstoque() {
+
     const lista = document.getElementById('lista-baixo-estoque');
+
+    if (!lista) return;
+
     const produtos = (await DB.listarProdutos()).filter(
         p => p.quantidade <= p.estoque_minimo && p.quantidade > 0
     );
 
+    // Nenhum produto com estoque baixo
     if (produtos.length === 0) {
-        lista.innerHTML = '<p style="color: #999; text-align: center;">Nenhum produto com estoque baixo</p>';
+
+        lista.innerHTML = `
+            <div class="lista-vazia">
+                <span class="lista-vazia-icone">✅</span>
+
+                <div>
+                    <strong>Estoque em dia!</strong>
+
+                    <p>
+                        Nenhum produto está abaixo do estoque mínimo.
+                    </p>
+                </div>
+            </div>
+        `;
+
         return;
     }
 
-    lista.innerHTML = produtos.map(p => `
-        <div class="item-lista">
-            <div class="item-info">
-                <strong>${p.nome}</strong><br>
-                <small>${p.quantidade} ${p.unidade} (Mín: ${p.estoque_minimo})</small>
+    // Mostrar no máximo 5 produtos no dashboard
+    const produtosExibidos = produtos.slice(0, 5);
+
+    lista.innerHTML = produtosExibidos.map(p => {
+
+        const percentual = p.estoque_minimo > 0
+            ? Math.round((p.quantidade / p.estoque_minimo) * 100)
+            : 0;
+
+        return `
+            <div class="item-lista item-estoque-baixo">
+
+                <div class="item-lista-icone">
+                    ⚠️
+                </div>
+
+                <div class="item-info">
+
+                    <strong>${p.nome}</strong>
+
+                    <div class="item-detalhes">
+                        <span>
+                            Estoque:
+                            <b>${p.quantidade} ${p.unidade}</b>
+                        </span>
+
+                        <span>
+                            Mínimo:
+                            <b>${p.estoque_minimo} ${p.unidade}</b>
+                        </span>
+                    </div>
+
+                    <div class="barra-estoque">
+
+                        <div
+                            class="barra-estoque-preenchida"
+                            style="width: ${Math.min(percentual, 100)}%">
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="item-acao">
+
+                    <button
+                        class="btn-repor"
+                        onclick="reporProduto('${p.id}')"
+                        title="Registrar entrada">
+
+                        📥 Repor
+
+                    </button>
+
+                </div>
+
             </div>
-            <div class="item-acao">
-                <button class="btn-icone btn-editar" onclick="renderEntrada()">📥</button>
-            </div>
-        </div>
-    `).join('');
+        `;
+
+    }).join('');
+
+    // Avisar se existem mais produtos além dos 5 mostrados
+    if (produtos.length > 5) {
+
+        lista.innerHTML += `
+            <button
+                class="btn-ver-todos"
+                onclick="renderEstoque()">
+
+                Ver todos os ${produtos.length} produtos →
+
+            </button>
+        `;
+
+    }
 }
 
-// Função para preencher lista crítica
-async function preencherListaCritica() {
-    const lista = document.getElementById('lista-critica');
-    const produtos = (await DB.listarProdutos()).filter(p => p.quantidade <= 0);
+// ============================================
+// LISTA DE PRODUTOS SEM ESTOQUE
+// ============================================
 
+async function preencherListaCritica() {
+
+    const lista = document.getElementById('lista-critica');
+
+    if (!lista) return;
+
+    const produtos = (await DB.listarProdutos()).filter(
+        p => p.quantidade <= 0
+    );
+
+    // Nenhum produto sem estoque
     if (produtos.length === 0) {
-        lista.innerHTML = '<p style="color: #999; text-align: center;">Nenhum produto sem estoque</p>';
+
+        lista.innerHTML = `
+            <div class="lista-vazia">
+                <span class="lista-vazia-icone">📦</span>
+
+                <div>
+                    <strong>Nenhum produto zerado</strong>
+
+                    <p>
+                        Todos os produtos possuem estoque.
+                    </p>
+                </div>
+            </div>
+        `;
+
         return;
     }
 
-    lista.innerHTML = produtos.map(p => `
-        <div class="item-lista item-critico">
-            <div class="item-info">
-                <strong>${p.nome}</strong><br>
-                <small>${p.categoria}</small>
+    // Mostrar no máximo 5 produtos
+    const produtosExibidos = produtos.slice(0, 5);
+
+    lista.innerHTML = produtosExibidos.map(p => {
+
+        return `
+            <div class="item-lista item-critico">
+
+                <div class="item-lista-icone">
+                    🚨
+                </div>
+
+                <div class="item-info">
+
+                    <strong>${p.nome}</strong>
+
+                    <div class="item-detalhes">
+
+                        <span>
+                            Categoria:
+                            <b>${p.categoria}</b>
+                        </span>
+
+                        <span>
+                            Estoque:
+                            <b class="estoque-zero">0 ${p.unidade}</b>
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="item-acao">
+
+                    <button
+
+                        class="btn-repor btn-repor-critico"
+                        onclick="reporProduto('${p.id}')"
+                        title="Registrar entrada">
+
+                        📥 Repor
+
+                    </button>
+
+                </div>
+
             </div>
-            <div class="item-acao">
-                <button class="btn-icone btn-primario" onclick="renderEntrada()">Repor</button>
-            </div>
-        </div>
-    `).join('');
+        `;
+
+    }).join('');
+
+    // Avisar se existem mais produtos
+    if (produtos.length > 5) {
+
+        lista.innerHTML += `
+            <button
+                class="btn-ver-todos"
+                onclick="renderEstoque()">
+
+                Ver todos os ${produtos.length} produtos →
+
+            </button>
+        `;
+
+    }
+}
+
+// ============================================
+// REPOR PRODUTO PELO DASHBOARD
+// ============================================
+
+function reporProduto(produtoId) {
+    renderEntrada(produtoId);
 }
 
 // Abrir tela de alterar senha
@@ -472,10 +880,24 @@ async function abrirPaginaAdmin() {
                     </div>
                 </form>
             </div>
+
+            <div class="backup-secao">
+                <h3>💾 Backup dos dados</h3>
+                <p>Baixe uma cópia de tudo (usuários, produtos, entradas e saídas) ou restaure a partir de um arquivo.</p>
+                <p id="info-ultimo-backup" class="backup-info"></p>
+
+                <div class="botoes">
+                    <button type="button" class="btn btn-primario" onclick="baixarBackup()">⬇️ Baixar backup</button>
+                    <button type="button" class="btn btn-secundario" onclick="escolherArquivoBackup()">⬆️ Restaurar backup</button>
+                </div>
+
+                <input type="file" id="arquivo-backup" accept=".json,application/json" class="oculto" onchange="restaurarBackup(event)">
+            </div>
         </div>
     `;
 
     carregarListaUsuarios();
+    atualizarInfoBackup();
     document.getElementById('form-novo-usuario').addEventListener('submit', handleNovoUsuario);
 }
 
@@ -483,12 +905,12 @@ async function abrirPaginaAdmin() {
 function mostrarAbaUsers() {
     document.getElementById('aba-users').classList.remove('oculto');
     document.getElementById('aba-novo-user').classList.add('oculto');
-    
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('tab-ativo');
     });
     document.querySelectorAll('.tab-btn')[0].classList.add('tab-ativo');
-    
+
     carregarListaUsuarios();
 }
 
@@ -496,7 +918,7 @@ function mostrarAbaUsers() {
 function mostrarAbaNovoUser() {
     document.getElementById('aba-users').classList.add('oculto');
     document.getElementById('aba-novo-user').classList.remove('oculto');
-    
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.classList.remove('tab-ativo');
     });
@@ -533,7 +955,7 @@ async function carregarListaUsuarios() {
                     <td><span class="status ${statusClasse}">${statusTexto}</span></td>
                     <td>
                         <div class="acoes">
-                            ${usuario.ativo ? 
+                            ${usuario.ativo ?
                                 `<button class="btn-icone btn-perigo" onclick="desativarUsuarioConfirm('${usuario.id}', '${usuario.nome.replace(/'/g, "\\'")}')">🔒 Desativar</button>` :
                                 `<button class="btn-icone btn-sucesso" onclick="ativarUsuario('${usuario.id}')">🔓 Ativar</button>`
                             }
@@ -600,16 +1022,21 @@ function limparFormNovoUser() {
     document.getElementById('nova-senha-confirma').value = '';
 }
 
-// Desativar usuário com confirmação
-function desativarUsuarioConfirm(id, nome) {
+// Desativar usuário com confirmação (modal personalizado)
+async function desativarUsuarioConfirm(id, nome) {
     if (id === usuarioLogado.id) {
         alert('Você não pode desativar sua própria conta!');
         return;
     }
 
-    if (confirm(`Tem certeza que deseja desativar o usuário "${nome}"?\n\nEle não conseguirá fazer login.`)) {
-        desativarUsuario(id, nome);
-    }
+    const ok = await confirmarModal({
+        titulo: '🔒 Desativar usuário?',
+        html: `<p>Tem certeza que deseja desativar <strong>${nome}</strong>?</p>
+               <p style="margin-top:8px;">Ele não conseguirá fazer login.</p>`,
+        textoOk: 'Desativar',
+        perigo: true
+    });
+    if (ok) desativarUsuario(id, nome);
 }
 
 // Desativar usuário
@@ -628,7 +1055,7 @@ async function ativarUsuario(id) {
     try {
         const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
         const usuario = usuarios.find(u => u.id === id);
-        
+
         if (usuario) {
             usuario.ativo = true;
             usuarios[usuarios.indexOf(usuario)] = usuario;
@@ -641,10 +1068,10 @@ async function ativarUsuario(id) {
     }
 }
 
-// Resetar senha do usuário
-function resetarSenhaUser(id, nome) {
+// Resetar senha do usuário (o prompt continua do navegador, pois precisa de um campo de texto)
+async function resetarSenhaUser(id, nome) {
     const novaSenha = prompt(`Digite a nova senha para ${nome}:\n\n(Mínimo 6 caracteres)`);
-    
+
     if (novaSenha === null) return;
 
     if (novaSenha.length < 6) {
@@ -652,9 +1079,12 @@ function resetarSenhaUser(id, nome) {
         return;
     }
 
-    if (confirm(`Confirma a alteração de senha para ${nome}?`)) {
-        executarResetSenha(id, novaSenha, nome);
-    }
+    const ok = await confirmarModal({
+        titulo: '🔑 Alterar senha?',
+        html: `<p>Confirma a alteração de senha de <strong>${nome}</strong>?</p>`,
+        textoOk: 'Confirmar'
+    });
+    if (ok) executarResetSenha(id, novaSenha, nome);
 }
 
 // Executar reset de senha
