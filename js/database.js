@@ -62,6 +62,8 @@ const DB = {
     },
 
     async atualizarProduto(id, dados) {
+        try {
+        // Se estiver usando Supabase
         const { data, error } = await sb
             .from('produtos')
             .update(dados)
@@ -74,6 +76,10 @@ const DB = {
             throw error;
         }
         return data;
+    } catch (error) {
+        console.error('Erro ao atualizar produto:', error);
+        throw error;
+    }
     },
 
     async excluirProduto(id) {
