@@ -9,15 +9,41 @@
 <body>
     <div id="app"></div>
 
-    <!-- Supabase CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Scripts do sistema na ordem correta -->
-    <script src="js/config.js"></script>
+    <button class="btn-modo-escuro" onclick="alternarModoEscuro()" id="btnModoEscuro" title="Alternar modo escuro">🌙</button>
+
     <script src="js/database.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/produtos.js"></script>
     <script src="js/movimentacao.js"></script>
     <script src="js/relatorios.js"></script>
+    
+    <script>
+        // Função do modo escuro inline
+        function alternarModoEscuro() {
+            const body = document.body;
+            const btnModoEscuro = document.getElementById('btnModoEscuro');
+            
+            body.classList.toggle('modo-escuro');
+            
+            if (body.classList.contains('modo-escuro')) {
+                btnModoEscuro.textContent = '☀️';
+                localStorage.setItem('modoEscuro', 'ativado');
+            } else {
+                btnModoEscuro.textContent = '🌙';
+                localStorage.setItem('modoEscuro', 'desativado');
+            }
+        }
+
+        // Carregar tema salvo ao iniciar
+        window.addEventListener('DOMContentLoaded', () => {
+            const modoEscuro = localStorage.getItem('modoEscuro');
+            const btnModoEscuro = document.getElementById('btnModoEscuro');
+            
+            if (modoEscuro === 'ativado') {
+                document.body.classList.add('modo-escuro');
+                btnModoEscuro.textContent = '☀️';
+            }
+        });
+    </script>
 </body>
 </html>
