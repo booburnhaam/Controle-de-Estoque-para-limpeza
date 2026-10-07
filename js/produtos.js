@@ -209,6 +209,9 @@ function exibirProdutos(produtos) {
                 <td><span class="status ${statusClasse}">${statusTexto}</span></td>
                 <td>
                     <div class="acoes">
+                        <button class="btn-icone btn-editar" onclick="abrirEditarProduto('${produto.id}', '${produto.nome.replace(/'/g, "\\'")}')">
+                            ✏️
+                        </button>
                         <button class="btn-icone btn-excluir" onclick="excluirProduto('${produto.id}', '${produto.nome.replace(/'/g, "\\'")}')">
                             🗑️
                         </button>
@@ -250,5 +253,114 @@ async function excluirProduto(id, nome) {
         carregarEstoque();
     } catch (error) {
         mostrarMensagem('mensagem-estoque', '✗ Erro ao excluir produto.', 'erro');
+    }
+}
+
+// Função para abrir o modal/formulário de edição
+async function abrirEditarProduto(id, nome) {
+    try {
+        const produto = await DB.buscarProdutoPorId(id);
+        
+        if (!produto) {
+            mostrarMensagem('mensagem-estoque', 'Produto não encontrado.', 'erro');
+            return;
+        }
+
+        const app = document.getElementById('app');
+        app.innerHTML = `
+            <button class="btn-voltar-fixo" onclick="renderEstoque()">← Voltar ao Estoque</button>
+            
+            <div class="container container-com-voltar">
+                <h1 class="titulo">Editar Produto</h1>
+                <p class="subtitulo">Atualize as informações do material</p>
+                
+                <div id="mensagem-edicao"></div>
+                
+                <form id="form-edicao" class="formulario">
+                    <div class="campo">
+                        <label>Nome do Produto *</label>
+                        <input type="text" id="nome-edit" value="${produto.nome}" required autofocus>
+                    </div>
+                    
+                    <div class="campo">
+                        <label>Categoria *</label>
+                        <select id="categoria-edit" required>
+                            <option value="Limpeza" ${produto.categoria === 'Limpeza' ? 'selected' : ''}>Limpeza</option>
+                            <option value="Higiene" ${produto.categoria === 'Higiene' ? 'selected' : ''}>Higiene</option>
+                            <option value="Descartáveis" ${produto.categoria === 'Descartáveis' ? 'selected' : ''}>Descartáveis</option>
+                            <option value="Químicos" ${produto.categoria === 'Químicos' ? 'selected' : ''}>Químicos</option>
+                            <option value="Outros" ${produto.categoria === 'Outros' ? 'selected' : ''}>Outros</option>
+                        </select>
+                    </div>
+                    
+                    <div class="campo">
+                        <label>Quantidade *</label>
+                        <input type="number" id="quantidade-edit" value="${produto.quantidade}" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="campo">
+                        <label>Unidade de Medida *</label>
+                        <select id="unidade-edit" required>
+                            <option value="Unidades" ${produto.unidade === 'Unidades' ? 'selected' : ''}>Unidades</option>
+                            <option value="Litros" ${produto.unidade === 'Litros' ? 'selected' : ''}>Litros</option>
+                            <option value="Quilos" ${produto.unidade === 'Quilos' ? 'selected' : ''}>Quilos</option>
+                            <option value="Caixas" ${produto.unidade === 'Caixas' ? 'selected' : ''}>Caixas</option>
+                            <option value="Pacotes" ${produto.unidade === 'Pacotes' ? 'selected' : ''}>Pacotes</option>
+                            <option value="Fardos" ${produto.unidade === 'Fardos' ? 'selected' : ''}>Fardos</option>
+                        </select>
+                    </div>
+                    
+                    <div class="campo">
+                        <label>Estoque Mínimo *</label>
+                        <input type="number" id="estoque-minimo-edit" value="${produto.estoque_minimo}" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="botoes">
+                        <button type="submit" class="btn btn-primario">✓ Salvar Alterações</button>
+                        <button type="button" class="btn btn-secundario" onclick="renderEstoque()">← Cancelar</button>
+                    </div>
+                </form>
+                
+                <div style="margin-top: 30px; padding: 20px; background: #f5f5f5; border-radius: 10px;">
+                    <p style="color: #666; font-size: 14px;">
+                        <strong>Informação:</strong> Código do produto: <strong>${produto.codigo}</strong><br>
+                        Este código não pode ser alterado.
+                    </p>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('form-edicao').addEventListener('submit', (e) => handleEditarProduto(e, id));
+    } catch (error) {
+        mostrarMensagem('mensagem-estoque', 'Erro ao carregar o produto para edição.', 'erro');
+    }
+}
+
+// Função para salvar as alterações
+async function handleEditarProduto(e, produtoId) {
+    e.preventDefault();
+    
+    const btnSalvar = e.target.querySelector('button[type="submit"]');
+    btnSalvar.disabled = true;
+    btnSalvar.textContent = 'Salvando...';
+    
+    try {
+        await DB.atualizarProduto(produtoId, {
+            nome: document.getElementById('nome-edit').value,
+            categoria: document.getElementById('categoria-edit').value,
+            quantidade: parseFloat(document.getElementById('quantidade-edit').value),
+            unidade: document.getElementById('unidade-edit').value,
+            estoque_minimo: parseFloat(document.getElementById('estoque-minimo-edit').value)
+        });
+
+        mostrarMensagem('mensagem-edicao', '✓ Produto atualizado com sucesso!', 'sucesso');
+        
+        setTimeout(() => {
+            renderEstoque();
+        }, 1500);
+    } catch (error) {
+        mostrarMensagem('mensagem-edicao', '✗ Erro ao atualizar produto. Tente novamente.', 'erro');
+        btnSalvar.disabled = false;
+        btnSalvar.textContent = '✓ Salvar Alterações';
     }
 }
