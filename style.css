@@ -1337,6 +1337,28 @@ kbd {
 }
 
 /* ============================================
+   MENSAGENS NO MODO ESCURO
+   ============================================ */
+
+body.modo-escuro .mensagem-sucesso {
+  background: rgba(76, 175, 80, 0.15);
+  color: #81c784;
+  border-left-color: #4caf50;
+}
+
+body.modo-escuro .mensagem-erro {
+  background: rgba(244, 67, 54, 0.15);
+  color: #ef9a9a;
+  border-left-color: #f44336;
+}
+
+body.modo-escuro .mensagem-alerta {
+  background: rgba(255, 152, 0, 0.15);
+  color: #ffb74d;
+  border-left-color: #ff9800;
+}
+
+/* ============================================
    LAYOUT COMPACTO DO MENU PRINCIPAL
    ============================================ */
 

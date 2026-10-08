@@ -184,11 +184,13 @@ async function renderMenuPrincipal() {
                                 🔐 Alterar Senha
                             </button>
 
-                            <button
-                                class="btn btn-pequeno"
-                                onclick="abrirPaginaAdmin()">
-                                ⚙️ Admin
-                            </button>
+                            ${usuarioLogado.nivel === 'admin' ? `
+                                <button
+                                    class="btn btn-pequeno"
+                                    onclick="abrirPaginaAdmin()">
+                                    ⚙️ Admin
+                                </button>
+                            ` : ''}
 
                             <button
                                 class="btn btn-pequeno"
@@ -807,6 +809,12 @@ async function handleAlterarSenha(e) {
 
 // Abrir página de Admin
 async function abrirPaginaAdmin() {
+
+    if (!usuarioLogado || usuarioLogado.nivel !== 'admin') {
+        alert('Você não tem permissão para acessar o painel administrativo.');
+        return;
+    }
+
     const app = document.getElementById('app');
     app.innerHTML = `
         <button class="btn-voltar-fixo" onclick="renderMenuPrincipal()">← Voltar ao Menu</button>

@@ -17,12 +17,27 @@ const DB = {
                     usuario: 'admin',
                     senha: btoa('admin123' + 'salt_controle_estoque'),
                     nome: 'Administrador',
+                    nivel: 'admin',
                     criado_em: new Date().toISOString(),
                     ativo: true,
                     tentativas_falhas: 0,
                     bloqueado_ate: null
                 }
             ]));
+        }
+        const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
+
+        let usuariosAtualizados = false;
+
+        usuarios.forEach(usuario => {
+            if (!usuario.nivel) {
+                usuario.nivel = usuario.usuario === 'admin' ? 'admin' : 'funcionario';
+                usuariosAtualizados = true;
+            }
+        });
+
+        if (usuariosAtualizados) {
+            localStorage.setItem('usuarios', JSON.stringify(usuarios));
         }
     },
 
@@ -320,6 +335,7 @@ const DB = {
                 usuario: usuario,
                 senha: senhaHash,
                 nome: nome,
+                nivel: 'funcionario',
                 criado_em: new Date().toISOString(),
                 ativo: true,
                 tentativas_falhas: 0,
@@ -392,10 +408,11 @@ const DB = {
     async listarUsuarios() {
         try {
             const usuarios = JSON.parse(localStorage.getItem('usuarios')) || [];
-            return usuarios.map(u => ({
+                return usuarios.map(u => ({
                 id: u.id,
                 usuario: u.usuario,
                 nome: u.nome,
+                nivel: u.nivel || 'funcionario',
                 criado_em: u.criado_em,
                 ativo: u.ativo
             }));
