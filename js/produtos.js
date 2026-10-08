@@ -29,14 +29,14 @@ function renderCadastroProduto() {
                 
                 <div class="campo">
                     <label>Quantidade Inicial *</label>
-                    <input type="number" id="quantidade" placeholder="Ex: 10" step="0.01" min="0" required>
+                    <input type="number" id="quantidade" placeholder="Ex: 10" step="1" min="0" required>
                 </div>
                 
                 <div class="campo">
                     <label>Unidade de Medida *</label>
                     <select id="unidade" required>
-                        <option value="">Selecione a unidade</option>
                         <option value="Unidades">Unidades</option>
+                        <option value="Pares">Pares</option>
                         <option value="Litros">Litros</option>
                         <option value="Quilos">Quilos</option>
                         <option value="Caixas">Caixas</option>
@@ -47,7 +47,7 @@ function renderCadastroProduto() {
                 
                 <div class="campo">
                     <label>Estoque Mínimo *</label>
-                    <input type="number" id="estoque-minimo" placeholder="Ex: 5" step="0.01" min="0" required>
+                    <input type="number" id="estoque-minimo" placeholder="Ex: 5" step="1" min="0" required>
                 </div>
                 
                 <div class="botoes">
@@ -58,8 +58,43 @@ function renderCadastroProduto() {
         </div>
     `;
 
+    // Quando a unidade mudar, ajusta o tipo de quantidade permitido
+    document.getElementById('unidade').addEventListener('change', ajustarQuantidade);
+
     document.getElementById('form-cadastro').addEventListener('submit', handleCadastroProduto);
 }
+
+
+// Define se a quantidade pode ter casas decimais
+function ajustarQuantidade() {
+    const unidade = document.getElementById('unidade').value;
+    const quantidade = document.getElementById('quantidade');
+    const estoqueMinimo = document.getElementById('estoque-minimo');
+
+    const unidadesInteiras = [
+        'Unidades',
+        'Pares',
+        'Caixas',
+        'Pacotes',
+        'Fardos'
+    ];
+
+    if (unidadesInteiras.includes(unidade)) {
+        quantidade.step = '1';
+        estoqueMinimo.step = '1';
+
+        quantidade.placeholder = 'Ex: 10';
+        estoqueMinimo.placeholder = 'Ex: 5';
+
+    } else if (unidade === 'Litros' || unidade === 'Quilos') {
+        quantidade.step = '0.01';
+        estoqueMinimo.step = '0.01';
+
+        quantidade.placeholder = 'Ex: 10,5';
+        estoqueMinimo.placeholder = 'Ex: 5,5';
+    }
+}
+
 
 async function handleCadastroProduto(e) {
     e.preventDefault();
@@ -69,18 +104,62 @@ async function handleCadastroProduto(e) {
     btnCadastrar.textContent = 'Cadastrando...';
     
     try {
+        const nome = document.getElementById('nome').value;
+        const categoria = document.getElementById('categoria').value;
+        const quantidade = parseFloat(document.getElementById('quantidade').value);
+        const unidade = document.getElementById('unidade').value;
+        const estoqueMinimo = parseFloat(document.getElementById('estoque-minimo').value);
+
+        // Unidades que só aceitam números inteiros
+        const unidadesInteiras = [
+            'Unidades',
+            'Pares',
+            'Caixas',
+            'Pacotes',
+            'Fardos'
+        ];
+
+        // Verifica se foi colocada uma quantidade decimal onde não deveria
+        if (
+            unidadesInteiras.includes(unidade) &&
+            (!Number.isInteger(quantidade) || !Number.isInteger(estoqueMinimo))
+        ) {
+            mostrarMensagem(
+                'mensagem-cadastro',
+                '✗ Para essa unidade, a quantidade deve ser um número inteiro.',
+                'erro'
+            );
+
+            btnCadastrar.disabled = false;
+            btnCadastrar.textContent = '✓ Cadastrar';
+            return;
+        }
+
         await DB.inserirProduto({
-            nome: document.getElementById('nome').value,
-            categoria: document.getElementById('categoria').value,
-            quantidade: parseFloat(document.getElementById('quantidade').value),
-            unidade: document.getElementById('unidade').value,
-            estoque_minimo: parseFloat(document.getElementById('estoque-minimo').value)
+            nome: nome,
+            categoria: categoria,
+            quantidade: quantidade,
+            unidade: unidade,
+            estoque_minimo: estoqueMinimo
         });
 
-        mostrarMensagem('mensagem-cadastro', '✓ Produto cadastrado com sucesso!', 'sucesso');
+        mostrarMensagem(
+            'mensagem-cadastro',
+            '✓ Produto cadastrado com sucesso!',
+            'sucesso'
+        );
+
         limparCadastroProduto();
+
     } catch (error) {
-        mostrarMensagem('mensagem-cadastro', '✗ Erro ao cadastrar produto. Tente novamente.', 'erro');
+        console.error(error);
+
+        mostrarMensagem(
+            'mensagem-cadastro',
+            '✗ Erro ao cadastrar produto. Tente novamente.',
+            'erro'
+        );
+
     } finally {
         btnCadastrar.disabled = false;
         btnCadastrar.textContent = '✓ Cadastrar';

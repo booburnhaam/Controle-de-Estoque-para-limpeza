@@ -1,3 +1,29 @@
+function unidadeAceitaDecimal(unidade) {
+    return unidade === 'Litros' || unidade === 'Quilos';
+}
+
+
+function converterQuantidade(valor) {
+    if (valor === null || valor === undefined || valor === '') {
+        return 0;
+    }
+
+    const numero = parseFloat(String(valor).replace(',', '.'));
+
+    return Number.isFinite(numero) ? numero : 0;
+}
+
+
+function quantidadeValida(quantidade, unidade) {
+    const numero = converterQuantidade(quantidade);
+
+    if (unidadeAceitaDecimal(unidade)) {
+        return numero >= 0;
+    }
+
+    return Number.isInteger(numero) && numero >= 0;
+}
+
 async function renderEntrada(produtoId = null) {
     const app = document.getElementById('app');
     app.innerHTML = `
@@ -19,7 +45,9 @@ async function renderEntrada(produtoId = null) {
 
                 <div class="campo">
                     <label>Quantidade *</label>
-                    <input type="number" id="quantidade-entrada" placeholder="Quantidade recebida" step="0.01" min="0.01" required>
+                    <input type="number" id="quantidade-entrada"
+                    placeholder="Quantidade recebida"
+                    step="1" min="0.01" required>
                 </div>
 
                 <div class="campo">
@@ -58,6 +86,9 @@ async function renderEntrada(produtoId = null) {
 
     await carregarProdutosEntrada();
 
+    document.getElementById('produto-entrada')
+    .addEventListener('change', ajustarCampoQuantidadeEntrada);
+
     if (produtoId !== null) {
         const select = document.getElementById('produto-entrada');
 
@@ -69,6 +100,30 @@ async function renderEntrada(produtoId = null) {
     carregarHistoricoEntradas();
 
     document.getElementById('form-entrada').addEventListener('submit', handleEntrada);
+}
+
+function ajustarCampoQuantidadeEntrada() {
+    const select = document.getElementById('produto-entrada');
+    const input = document.getElementById('quantidade-entrada');
+
+    if (!select || !input || !select.value) {
+        return;
+    }
+
+    const option = select.options[select.selectedIndex];
+    const unidade = option.dataset.unidade;
+
+    if (unidadeAceitaDecimal(unidade)) {
+        input.step = '0.01';
+        input.min = '0.01';
+        input.placeholder = 'Ex: 3,5';
+    } else {
+        input.step = '1';
+        input.min = '1';
+        input.placeholder = 'Ex: 10';
+    }
+
+    input.value = '';
 }
 
 async function carregarProdutosEntrada() {
@@ -128,6 +183,17 @@ async function handleEntrada(e) {
         const option = select.options[select.selectedIndex];
         const quantidadeAtual = parseFloat(option.dataset.quantidade);
         const unidade = option.dataset.unidade;
+        if (!quantidadeValida(quantidade, unidade)) {
+            mostrarMensagem(
+                'mensagem-entrada',
+                `✗ A quantidade informada não é válida para a unidade ${unidade}.`,
+                'erro'
+            );
+
+            btnRegistrar.disabled = false;
+            btnRegistrar.textContent = '✓ Registrar Entrada';
+            return;
+        }
         const nomeProduto = option.dataset.nome;
 
         await DB.inserirEntrada({
@@ -181,8 +247,10 @@ function renderSaida() {
 
                 <div class="campo">
                     <label>Quantidade *</label>
-                    <input type="number" id="quantidade-saida" placeholder="Quantidade retirada" step="0.01" min="0.01" required>
-                </div>
+                    <input type="number" id="quantidade-saida"
+                    placeholder="Quantidade"
+                    step="1" min="1" required>
+                    </div>
 
                 <div class="campo">
                     <label>Data da Saída *</label>
@@ -217,9 +285,37 @@ function renderSaida() {
     `;
 
     document.getElementById('data-saida').valueAsDate = new Date();
+
     carregarProdutosSaida();
+    document.getElementById('produto-saida')
+        .addEventListener('change', ajustarCampoQuantidadeSaida);
+
     carregarHistoricoSaidas();
     document.getElementById('form-saida').addEventListener('submit', handleSaida);
+}
+
+function ajustarCampoQuantidadeSaida() {
+    const select = document.getElementById('produto-saida');
+    const input = document.getElementById('quantidade-saida');
+
+    if (!select || !input || !select.value) {
+        return;
+    }
+
+    const option = select.options[select.selectedIndex];
+    const unidade = option.dataset.unidade;
+
+    if (unidadeAceitaDecimal(unidade)) {
+        input.step = '0.01';
+        input.min = '0.01';
+        input.placeholder = 'Ex: 3,5';
+    } else {
+        input.step = '1';
+        input.min = '1';
+        input.placeholder = 'Ex: 10';
+    }
+
+    input.value = '';
 }
 
 async function carregarProdutosSaida() {
@@ -285,6 +381,18 @@ async function handleSaida(e) {
         const estoqueMinimo = parseFloat(option.dataset.minimo);
         const unidade = option.dataset.unidade;
         const nomeProduto = option.dataset.nome;
+
+        if (!quantidadeValida(quantidade, unidade)) {
+            mostrarMensagem(
+                'mensagem-saida',
+                `✗ A quantidade informada não é válida para a unidade ${unidade}.`,
+                'erro'
+            );
+
+            btnRegistrar.disabled = false;
+            btnRegistrar.textContent = '✓ Registrar Saída';
+            return;
+        }
 
         if (quantidadeAtual < quantidade) {
             mostrarMensagem('mensagem-saida',
